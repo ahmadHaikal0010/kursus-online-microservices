@@ -38,5 +38,29 @@ services:
     depends_on:
       - course-db
 
+  enrollment-service:
+    build:
+      context: ./enrollment-service
+    container_name: enrollment-service
+    ports:
+      - "3002:8000"
+    env_file:
+      - ./enrollment-service/.env
+    depends_on:
+      - postgres-enrollment
+      - course-service
+
+  postgres-enrollment:
+    image: postgres:16
+    container_name: postgres-enrollment
+    environment:
+      POSTGRES_DB: enrollment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_enrollment_data:/var/lib/postgresql/data
+
+
 volumes:
   course_db_data:
+  pg_enrollment_data:
