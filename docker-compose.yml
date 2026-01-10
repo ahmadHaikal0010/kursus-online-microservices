@@ -1,0 +1,38 @@
+services:
+  course-service:
+    build:
+      context: ./course-service
+    container_name: course-service
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./course-service/.env
+    depends_on:
+      - course-db
+
+  course-db:
+    image: mongo:7
+    container_name: course-db
+    ports:
+      - "27017:27017"
+    env_file:
+      - ./course-service/.env
+    volumes:
+    - course_db_data:/data/db
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    environment:
+      ME_CONFIG_BASICAUTH: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+      ME_CONFIG_MONGODB_URL: mongodb://admin:admin123@course-db:27017/?authSource=admin
+    ports:
+      - "8081:8081"
+    restart: always
+    depends_on:
+      - course-db
+
+volumes:
+  course_db_data:
