@@ -17,7 +17,9 @@ services:
     networks:      
       - app-network
 
-    # 3. REVIEW SERVICE (PYTHON + FLASK)
+   
+  
+   # 3. REVIEW SERVICE (JAVA + JAVALIN + MONGODB)
   review-service:
     build:
       context: ./review-service
@@ -26,11 +28,12 @@ services:
       - "5002:5002"
     env_file:
       - ./review-service/.env
-    restart: unless-stopped
     depends_on:
       - course-db
+    restart: unless-stopped
     networks:
       - app-network
+
     
 
   course-db:
