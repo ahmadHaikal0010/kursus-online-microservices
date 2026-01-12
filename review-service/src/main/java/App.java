@@ -1,105 +1,149 @@
 import io.javalin.Javalin;
-import com.mongodb.client.*;
-import org.bson.Document;
-import org.bson.types.ObjectId;
+import java.sql.*;
 import java.util.*;
-import static com.mongodb.client.model.Filters.eq;
 
 public class App {
 
-    public static void main(String[] args) {
+    private static final String DB_URL = "jdbc:sqlite:reviews.db"; // relative path
 
-        String mongoUri = System.getenv().getOrDefault(
-                "MONGO_URI",
-                "mongodb://admin:admin123@mongo-db:27017/reviewdb?authSource=admin");
+    public static void main(String[] args) throws Exception {
 
-        MongoClient client = MongoClients.create(mongoUri);
-        MongoDatabase db = client.getDatabase("reviewdb");
-        MongoCollection<Document> reviews = db.getCollection("reviews");
+        // Koneksi database
+        Connection conn = DriverManager.getConnection(DB_URL);
 
+        // Shutdown hook untuk menutup koneksi
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                conn.close();
+                System.out.println("SQLite connection closed");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }));
+
+        // CREATE TABLE jika belum ada
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS reviews (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id INTEGER NOT NULL,
+                    review TEXT NOT NULL,
+                    rating INTEGER NOT NULL
+                )
+            """);
+        }
+
+        // Start Javalin
         Javalin app = Javalin.create().start(5002);
 
         // POST /reviews
         app.post("/reviews", ctx -> {
-            Document body = Document.parse(ctx.body());
-            reviews.insertOne(body);
-            ctx.json(body);
+            ReviewRequest body = ctx.bodyAsClass(ReviewRequest.class);
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO reviews (product_id, review, rating) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+
+                ps.setInt(1, body.product_id);
+                ps.setString(2, body.review);
+                ps.setInt(3, body.rating);
+
+                int inserted = ps.executeUpdate(); // **Wajib executeUpdate**
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    rs.next();
+                    ctx.json(Map.of(
+                            "id", rs.getInt(1),
+                            "message", "Review created"
+                    ));
+                }
+            }
         });
 
         // GET /reviews
         app.get("/reviews", ctx -> {
-            List<Map<String, Object>> result = new ArrayList<>();
+            List<Map<String, Object>> list = new ArrayList<>();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT * FROM reviews")) {
 
-            for (Document doc : reviews.find()) {
-                Map<String, Object> item = new HashMap<>();
-
-                item.put("_id", doc.getObjectId("_id").toHexString()); // 🔥 INI
-                item.put("product_id", doc.getInteger("product_id"));
-                item.put("review", doc.getString("review"));
-                item.put("rating", doc.getInteger("rating"));
-
-                result.add(item);
+                while (rs.next()) {
+                    list.add(Map.of(
+                            "id", rs.getInt("id"),
+                            "product_id", rs.getInt("product_id"),
+                            "review", rs.getString("review"),
+                            "rating", rs.getInt("rating")
+                    ));
+                }
             }
-
-            ctx.json(result);
+            ctx.json(list);
         });
 
         // GET /reviews/product/{id}
         app.get("/reviews/product/{id}", ctx -> {
             int productId = Integer.parseInt(ctx.pathParam("id"));
-            List<Map<String, Object>> result = new ArrayList<>();
+            List<Map<String, Object>> list = new ArrayList<>();
 
-            for (Document doc : reviews.find(eq("product_id", productId))) {
-                Map<String, Object> item = new HashMap<>();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT * FROM reviews WHERE product_id = ?")) {
+                ps.setInt(1, productId);
 
-                item.put("_id", doc.getObjectId("_id").toHexString()); // 🔥 INI
-                item.put("product_id", doc.getInteger("product_id"));
-                item.put("review", doc.getString("review"));
-                item.put("rating", doc.getInteger("rating"));
-
-                result.add(item);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(Map.of(
+                                "id", rs.getInt("id"),
+                                "product_id", rs.getInt("product_id"),
+                                "review", rs.getString("review"),
+                                "rating", rs.getInt("rating")
+                        ));
+                    }
+                }
             }
-
-            ctx.json(result);
+            ctx.json(list);
         });
 
         // PUT /reviews/{id}
         app.put("/reviews/{id}", ctx -> {
-            String id = ctx.pathParam("id");
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            ReviewRequest body = ctx.bodyAsClass(ReviewRequest.class);
 
-            Document body = Document.parse(ctx.body());
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE reviews SET review=?, rating=? WHERE id=?")) {
+                ps.setString(1, body.review);
+                ps.setInt(2, body.rating);
+                ps.setInt(3, id);
 
-            Document update = new Document("$set", new Document()
-                    .append("review", body.getString("review"))
-                    .append("rating", body.getInteger("rating")));
-
-            var result = reviews.updateOne(
-                    eq("_id", new ObjectId(id)),
-                    update);
-
-            if (result.getMatchedCount() == 0) {
-                ctx.status(404).json(Map.of("message", "Review not found"));
-            } else {
-                ctx.json(Map.of(
-                        "message", "Review updated successfully",
-                        "id", id));
+                int updated = ps.executeUpdate();
+                if (updated == 0) {
+                    ctx.status(404).json(Map.of("message", "Review not found"));
+                } else {
+                    ctx.json(Map.of("message", "Review updated"));
+                }
             }
         });
 
         // DELETE /reviews/{id}
         app.delete("/reviews/{id}", ctx -> {
-            String id = ctx.pathParam("id");
+            int id = Integer.parseInt(ctx.pathParam("id"));
 
-            var result = reviews.deleteOne(eq("_id", new ObjectId(id)));
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM reviews WHERE id=?")) {
+                ps.setInt(1, id);
 
-            if (result.getDeletedCount() == 0) {
-                ctx.status(404).json(Map.of("message", "Review not found"));
-            } else {
-                ctx.json(Map.of(
-                        "message", "Review deleted successfully",
-                        "id", id));
+                int deleted = ps.executeUpdate();
+                if (deleted == 0) {
+                    ctx.status(404).json(Map.of("message", "Review not found"));
+                } else {
+                    ctx.json(Map.of("message", "Review deleted"));
+                }
             }
         });
 
+        System.out.println("Server started on http://localhost:5002");
+    }
+
+    // Class request untuk POST & PUT
+    public static class ReviewRequest {
+        public int product_id;
+        public String review;
+        public int rating;
     }
 }

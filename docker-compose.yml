@@ -19,17 +19,15 @@ services:
 
    
   
-   # 3. REVIEW SERVICE (JAVA + JAVALIN + MONGODB)
+   # 2. REVIEW SERVICE (JAVA + JAVALIN + SQLITE)
   review-service:
     build:
       context: ./review-service
     container_name: review-service
     ports:
       - "5002:5002"
-    env_file:
-      - ./review-service/.env
-    depends_on:
-      - course-db
+    volumes:
+      - ./review-db:/app/data   
     restart: unless-stopped
     networks:
       - app-network
