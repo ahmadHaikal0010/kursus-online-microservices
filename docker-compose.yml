@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. COURSE SERVICE (NODE.JS + MONGODB)
   course-service:
@@ -18,6 +16,23 @@ services:
       - course-db
     networks:      
       - app-network
+
+   
+  
+   # 2. REVIEW SERVICE (JAVA + JAVALIN + SQLITE)
+  review-service:
+    build:
+      context: ./review-service
+    container_name: review-service
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./review-db:/app/data   
+    restart: unless-stopped
+    networks:
+      - app-network
+
+    
 
   course-db:
     image: mongo:7
