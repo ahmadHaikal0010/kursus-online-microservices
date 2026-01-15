@@ -46,3 +46,9 @@ def get_enrollments_by_user(user_id: str, db: Session = Depends(get_db)):
         .all()
     )
     return enrollments
+
+@router.get("", response_model=List[EnrollmentResponse])
+def get_all_enrollments(db: Session = Depends(get_db)):
+    # Mengambil SEMUA data dari tabel enrollments
+    enrollments = db.query(Enrollment).all()
+    return enrollments
