@@ -100,7 +100,7 @@ services:
       MYSQL_DATABASE: user_db
       MYSQL_ROOT_PASSWORD: root
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - user_db_data:/var/lib/mysql
       - ./user-service/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -132,6 +132,8 @@ services:
     depends_on:
       - postgres-enrollment
       - course-service
+    networks:     
+      - app-network
 
   postgres-enrollment:
     image: postgres:16
@@ -142,6 +144,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - pg_enrollment_data:/var/lib/postgresql/data
+    networks:     
+      - app-network
 
 
 volumes:

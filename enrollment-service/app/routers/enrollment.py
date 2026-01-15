@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 import requests
 import os
 
@@ -36,3 +37,12 @@ def create_enrollment(data: EnrollmentCreate, db: Session = Depends(get_db)):
     db.refresh(enrollment)
 
     return enrollment
+
+@router.get("/user/{user_id}", response_model=List[EnrollmentResponse])
+def get_enrollments_by_user(user_id: str, db: Session = Depends(get_db)):
+    enrollments = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == user_id)
+        .all()
+    )
+    return enrollments
