@@ -70,6 +70,16 @@
           </configuration>
         </execution>
       </executions>
+      
+    </plugin>
+     <!-- RUN VIA MAVEN -->
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <version>3.6.3</version>
+      <configuration>
+        <mainClass>App</mainClass>
+      </configuration>
     </plugin>
 
   </plugins>
