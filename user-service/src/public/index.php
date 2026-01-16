@@ -57,6 +57,36 @@ if ($method === 'POST' && $path === '/register') {
     }
 }
 
+// // LOGIN 
+// if ($method === 'POST' && $path === '/login') {
+//     $data = json_decode(file_get_contents("php://input"));
+
+//     $stmt = $db->prepare("SELECT id, name, email, password, role FROM users WHERE email = ?");
+//     $stmt->execute([$data->email]);
+//     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+//     if ($user && password_verify($data->password, $user['password'])) {
+//         $payload = [
+//             'iss' => 'user-service',
+//             'iat' => time(),
+//             'exp' => time() + (60*60*24), 
+//             'data' => [
+//                 'id' => $user['id'],
+//                 'role' => $user['role']
+//             ]
+//         ];
+
+//         $jwt = JWT::encode($payload, $secret_key, $algo);
+//         jsonResponse([
+//             'message' => 'Login sukses',
+//             'token' => $jwt,
+//              'id' => $user['id'],
+//             'role' => $user['role']
+//         ]);
+//     } else {
+//         jsonResponse(['message' => 'Email atau password salah'], 401);
+//     }
+// }
 // LOGIN 
 if ($method === 'POST' && $path === '/login') {
     $data = json_decode(file_get_contents("php://input"));
@@ -69,7 +99,7 @@ if ($method === 'POST' && $path === '/login') {
         $payload = [
             'iss' => 'user-service',
             'iat' => time(),
-            'exp' => time() + (60*60*24), 
+            'exp' => time() + (60 * 60 * 24),
             'data' => [
                 'id' => $user['id'],
                 'role' => $user['role']
@@ -77,10 +107,17 @@ if ($method === 'POST' && $path === '/login') {
         ];
 
         $jwt = JWT::encode($payload, $secret_key, $algo);
+
+       
         jsonResponse([
             'message' => 'Login sukses',
             'token' => $jwt,
-            'role' => $user['role']
+            'role' => $user['role'],
+            'user' => [
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'email' => $user['email']
+            ]
         ]);
     } else {
         jsonResponse(['message' => 'Email atau password salah'], 401);
