@@ -104,7 +104,7 @@ services:
     networks:
       - app-network
 
-  # 3. ENROLLMENT SERVICE
+ # 3. ENROLLMENT SERVICE (PYTHON + POSTGRESQL)
   enrollment-service:
     build:
       context: ./enrollment-service
@@ -130,10 +130,21 @@ services:
       - pg_enrollment_data:/var/lib/postgresql/data
     networks:
       - app-network
+  
+  pgadmin-enrollment:
+    image: dpage/pgadmin4
+    container_name: pgadmin-enrollment
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8083:80"
+    depends_on:
+      - postgres-enrollment
+    networks:
+      - app-network
 
-  # ===============================
   # 4. REVIEW SERVICE (GOLANG + REDIS)
-  # ===============================
   review-service:
     build: ./review-service
     container_name: review-service
@@ -149,8 +160,6 @@ services:
   review-redis:
     image: redis:7
     container_name: review-redis
-    networks:
-      - app-network
 
 volumes:
   course_db_data:
