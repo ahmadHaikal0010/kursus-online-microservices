@@ -1,5 +1,9 @@
 course-service/node_modules/
 course-service/npm-debug.log
 course-service/.env
+target/
+*.class
+*.jar
+
 
 enrollment-service/.env
