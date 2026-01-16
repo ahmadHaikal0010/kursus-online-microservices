@@ -160,6 +160,18 @@ services:
   review-redis:
     image: redis:7
     container_name: review-redis
+    networks:
+      - app-network
+  
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    ports:
+      - "5540:5540"
+    depends_on:
+      - review-redis
+    networks:
+      - app-network
 
 volumes:
   course_db_data:
