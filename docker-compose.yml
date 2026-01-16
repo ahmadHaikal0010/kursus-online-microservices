@@ -16,24 +16,7 @@ services:
       - course-db
     networks:      
       - app-network
-
-   
   
-   # 2. REVIEW SERVICE (JAVA + JAVALIN + SQLITE)
-  review-service:
-    build:
-      context: ./review-service
-    container_name: review-service
-    ports:
-      - "5002:5002"
-    volumes:
-      - ./review-db:/app/data   
-    restart: unless-stopped
-    networks:
-      - app-network
-
-    
-
   course-db:
     image: mongo:7
     container_name: course-db
@@ -65,7 +48,20 @@ services:
     networks:   
       - app-network
 
-  # 2. USER SERVICE (PHP + MySQL)
+  # 2. REVIEW SERVICE (JAVA + JAVALIN + SQLITE)
+  review-service:
+    build:
+      context: ./review-service
+    container_name: review-service
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./review-db:/app/data   
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # 3. USER SERVICE (PHP + MySQL)
   app:
     build: 
       context: ./user-service/docker/php 
@@ -121,6 +117,7 @@ services:
     networks:
       - app-network
 
+ # 4. ENROLLMENT SERVICE (PYTHON + POSTGRESQL)
   enrollment-service:
     build:
       context: ./enrollment-service
@@ -147,6 +144,18 @@ services:
     networks:     
       - app-network
 
+  pgadmin-enrollment:
+    image: dpage/pgadmin4
+    container_name: pgadmin-enrollment
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8083:80"
+    depends_on:
+      - postgres-enrollment
+    networks:
+      - app-network
 
 volumes:
   course_db_data:
