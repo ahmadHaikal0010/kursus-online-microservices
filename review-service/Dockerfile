@@ -1,9 +1,18 @@
-FROM eclipse-temurin:17-jdk-alpine
+FROM golang:1.22-alpine
 
 WORKDIR /app
 
-COPY target/review-service-1.0.jar app.jar
+# 1. Copy go.mod + go.sum
+COPY go.mod go.sum ./
 
-EXPOSE 5002
+# 2. Download dependency
+RUN go mod download
 
-CMD ["java", "-jar", "app.jar"]
+# 3. Copy source code
+COPY . .
+
+# 4. Build binary
+RUN go build -o app
+
+EXPOSE 8080
+CMD ["./app"]

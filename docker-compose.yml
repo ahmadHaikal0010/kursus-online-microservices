@@ -14,9 +14,9 @@ services:
     restart: unless-stopped
     depends_on:
       - course-db
-    networks:      
+    networks:
       - app-network
-  
+
   course-db:
     image: mongo:7
     container_name: course-db
@@ -28,7 +28,7 @@ services:
     volumes:
       - course_db_data:/data/db
     restart: unless-stopped
-    networks:     
+    networks:
       - app-network
 
   mongo-express:
@@ -41,30 +41,17 @@ services:
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: admin123
     ports:
-      - "8082:8081"  
+      - "8082:8081"
     restart: unless-stopped
     depends_on:
       - course-db
-    networks:   
-      - app-network
-
-  # 2. REVIEW SERVICE (JAVA + JAVALIN + SQLITE)
-  review-service:
-    build:
-      context: ./review-service
-    container_name: review-service
-    ports:
-      - "5002:5002"
-    volumes:
-      - ./review-db:/app/data   
-    restart: unless-stopped
     networks:
       - app-network
 
-  # 3. USER SERVICE (PHP + MySQL)
+  # 2. USER SERVICE (PHP + MySQL)
   app:
-    build: 
-      context: ./user-service/docker/php 
+    build:
+      context: ./user-service/docker/php
     container_name: user_service_app
     working_dir: /var/www/html
     volumes:
@@ -107,7 +94,7 @@ services:
     image: phpmyadmin/phpmyadmin
     container_name: user_service_pma
     ports:
-      - "8081:80" 
+      - "8081:80"
     environment:
       PMA_HOST: db
       PMA_USER: root
@@ -117,7 +104,7 @@ services:
     networks:
       - app-network
 
- # 4. ENROLLMENT SERVICE (PYTHON + POSTGRESQL)
+ # 3. ENROLLMENT SERVICE (PYTHON + POSTGRESQL)
   enrollment-service:
     build:
       context: ./enrollment-service
@@ -129,7 +116,7 @@ services:
     depends_on:
       - postgres-enrollment
       - course-service
-    networks:     
+    networks:
       - app-network
 
   postgres-enrollment:
@@ -141,9 +128,9 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - pg_enrollment_data:/var/lib/postgresql/data
-    networks:     
+    networks:
       - app-network
-
+  
   pgadmin-enrollment:
     image: dpage/pgadmin4
     container_name: pgadmin-enrollment
@@ -156,6 +143,23 @@ services:
       - postgres-enrollment
     networks:
       - app-network
+
+  # 4. REVIEW SERVICE (GOLANG + REDIS)
+  review-service:
+    build: ./review-service
+    container_name: review-service
+    ports:
+      - "3003:8080"
+    environment:
+      - REDIS_ADDR=review-redis:6379
+    depends_on:
+      - review-redis
+    networks:
+      - app-network
+
+  review-redis:
+    image: redis:7
+    container_name: review-redis
 
 volumes:
   course_db_data:
