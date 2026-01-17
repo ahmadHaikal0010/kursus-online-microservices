@@ -112,7 +112,37 @@ func main() {
 
 		c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 	})
+// =======================
+	// ADMIN: GET ALL REVIEWS
+	// =======================
+	r.GET("/admin/reviews", func(c *gin.Context) {
+		
+		maxIDStr, err := rdb.Get(ctx, "review:id").Result()
+		if err == redis.Nil {
+			c.JSON(http.StatusOK, []interface{}{}) 
+			return
+		}
 
+		maxID, _ := strconv.Atoi(maxIDStr)
+		var allReviews []map[string]string
+
+		// 2. Loop dari 1 sampai Max ID
+		for i := 1; i <= maxID; i++ {
+			key := "review:" + strconv.Itoa(i)
+			
+			// 3. Cek apakah key review ini ada (mungkin sudah dihapus)
+			exists, _ := rdb.Exists(ctx, key).Result()
+			
+			if exists > 0 {
+				// 4. Ambil datanya
+				data, _ := rdb.HGetAll(ctx, key).Result()
+				allReviews = append(allReviews, data)
+			}
+		}
+
+		// Balikan semua data
+		c.JSON(http.StatusOK, allReviews)
+	})
 	// =======================
 	// RUN SERVER
 	// =======================
